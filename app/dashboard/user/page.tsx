@@ -27,22 +27,9 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { CreateUser, GetRoles, GetUsers, Role } from "@/lib/data-service";
+import { CreateUser, GetRoles, GetUsers, Role, User } from "@/lib/data-service";
 import { PlusCircle } from "lucide-react";
 import { useEffect, useState } from "react";
-
-interface User {
-  id: string;
-  created_at: string;
-  first_name: string;
-  last_name: string;
-  role: {
-    id: number;
-    name: string;
-  } | null;
-}
-
-
 
 export default function UserPage() {
   const [open, setOpen] = useState(false);

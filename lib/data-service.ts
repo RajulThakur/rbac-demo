@@ -16,7 +16,6 @@ interface Permission {
   description?: string;
 }
 
-
 export interface Role {
   id: number;
   name: string;
@@ -118,8 +117,7 @@ export async function GetRoles() {
   // Transform the data to flatten the permissions array
   return data.map((role: Role) => ({
     ...role,
-    permissions:
-      role.role_permissions?.map((rp: Permission) => rp.id) || [],
+    permissions: role.role_permissions?.map((rp: Permission) => rp.id) || [],
   }));
 }
 
@@ -188,9 +186,7 @@ export async function CreateRole(role: {
     data: {
       ...roleWithPerms,
       permissions:
-        roleWithPerms.role_permissions?.map(
-          (rp: Permission) => rp.permissions
-        ) || [],
+        roleWithPerms.role_permissions?.map((rp: Permission) => rp) || [],
     },
     status: 201,
     statusText: "Created",
@@ -293,9 +289,7 @@ export async function UpdateRole(role: {
   return {
     data: {
       ...data,
-      permissions:
-        data.role_permissions?.map((rp: RolePermission) => rp.permissions) ||
-        [],
+      permissions: data.role_permissions?.map((rp: Permission) => rp) || [],
     },
     status: 200,
     statusText: "OK",
@@ -303,7 +297,8 @@ export async function UpdateRole(role: {
 }
 
 // User management functions
-export async function GetUsers(): Promise<User[]> { // Add the correct return type
+export async function GetUsers(): Promise<User[]> {
+  // Add the correct return type
   const supabase = getAdminClient();
   const { data: authUsers, error: authError } =
     await supabase.auth.admin.listUsers();
@@ -332,12 +327,12 @@ export async function GetUsers(): Promise<User[]> { // Add the correct return ty
   const combinedUsers: User[] = authUsers.users.map((authUser) => {
     const userRole = userRoles?.find((ur) => ur.user_id === authUser.id);
     return {
-      id: authUser.id, // This is a string
+      id: authUser.id,
       email: authUser.email,
       created_at: authUser.created_at,
       first_name: authUser.user_metadata?.first_name || "",
       last_name: authUser.user_metadata?.last_name || "",
-      role: userRole?.roles,
+      role: userRole?.roles ? userRole.roles[0] || null : null,
     };
   });
 
@@ -349,7 +344,8 @@ export async function CreateUser(userData: {
   last_name: string;
   email: string;
   role_id: number;
-}): Promise<User> { // Add the correct return type
+}): Promise<User> {
+  // Add the correct return type
   const supabase = getAdminClient();
 
   // First, create the auth user
@@ -376,13 +372,16 @@ export async function CreateUser(userData: {
         user_id: authData.user.id,
         roles_id: userData.role_id,
       },
-    ]).select(`
+    ])
+    .select(
+      `
       roles:roles_id (
         id,
         name,
         description
       )
-    `)
+    `
+    )
     .single(); // Use .single() since we expect one result
 
   if (roleError) {
@@ -392,15 +391,13 @@ export async function CreateUser(userData: {
 
   // Return a combined user object matching the User interface
   const newUser: User = {
-      id: authData.user.id,
-      email: authData.user.email,
-      created_at: authData.user.created_at,
-      first_name: authData.user.user_metadata?.first_name || "",
-      last_name: authData.user.user_metadata?.last_name || "",
-      role: roleData?.roles,
+    id: authData.user.id,
+    email: authData.user.email,
+    created_at: authData.user.created_at,
+    first_name: authData.user.user_metadata?.first_name || "",
+    last_name: authData.user.user_metadata?.last_name || "",
+    role: roleData?.roles ? roleData.roles[0] || null : null,
   };
 
   return newUser;
 }
-
-
