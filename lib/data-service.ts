@@ -16,16 +16,24 @@ interface Permission {
   description?: string;
 }
 
-interface RolePermission {
-  permissions: Permission;
-}
 
-interface Role {
+export interface Role {
   id: number;
   name: string;
   description?: string;
-  role_permissions?: RolePermission[];
-  permissions?: Permission[];
+  role_permissions?: Permission[];
+}
+export interface User {
+  id: string; // Correct type is string for Supabase Auth UUID
+  first_name: string;
+  last_name: string;
+  email?: string;
+  created_at: string;
+  role?: {
+    id: number;
+    name: string;
+    description?: string;
+  } | null;
 }
 
 //Crud permissions
@@ -111,7 +119,7 @@ export async function GetRoles() {
   return data.map((role: Role) => ({
     ...role,
     permissions:
-      role.role_permissions?.map((rp: RolePermission) => rp.permissions) || [],
+      role.role_permissions?.map((rp: Permission) => rp.id) || [],
   }));
 }
 
@@ -181,7 +189,7 @@ export async function CreateRole(role: {
       ...roleWithPerms,
       permissions:
         roleWithPerms.role_permissions?.map(
-          (rp: RolePermission) => rp.permissions
+          (rp: Permission) => rp.permissions
         ) || [],
     },
     status: 201,
@@ -295,7 +303,7 @@ export async function UpdateRole(role: {
 }
 
 // User management functions
-export async function GetUsers() {
+export async function GetUsers(): Promise<User[]> { // Add the correct return type
   const supabase = getAdminClient();
   const { data: authUsers, error: authError } =
     await supabase.auth.admin.listUsers();
@@ -305,7 +313,6 @@ export async function GetUsers() {
     throw new Error("Failed to fetch users");
   }
 
-  // Get user roles from the junction table
   const { data: userRoles, error: rolesError } = await supabase.from(
     "user_roles"
   ).select(`
@@ -322,11 +329,12 @@ export async function GetUsers() {
     throw new Error("Failed to fetch user roles");
   }
 
-  // Combine auth users with their roles and flatten user metadata
-  const combinedUsers = authUsers.users.map((authUser) => {
+  const combinedUsers: User[] = authUsers.users.map((authUser) => {
     const userRole = userRoles?.find((ur) => ur.user_id === authUser.id);
     return {
-      ...authUser,
+      id: authUser.id, // This is a string
+      email: authUser.email,
+      created_at: authUser.created_at,
       first_name: authUser.user_metadata?.first_name || "",
       last_name: authUser.user_metadata?.last_name || "",
       role: userRole?.roles,
@@ -341,7 +349,7 @@ export async function CreateUser(userData: {
   last_name: string;
   email: string;
   role_id: number;
-}) {
+}): Promise<User> { // Add the correct return type
   const supabase = getAdminClient();
 
   // First, create the auth user
@@ -374,19 +382,25 @@ export async function CreateUser(userData: {
         name,
         description
       )
-    `);
+    `)
+    .single(); // Use .single() since we expect one result
 
   if (roleError) {
     console.error("Error assigning user role:", roleError);
     throw new Error("Failed to assign user role");
   }
 
-  // Return combined user data
-  return {
-    ...authData.user,
-    role: roleData?.[0]?.roles,
+  // Return a combined user object matching the User interface
+  const newUser: User = {
+      id: authData.user.id,
+      email: authData.user.email,
+      created_at: authData.user.created_at,
+      first_name: authData.user.user_metadata?.first_name || "",
+      last_name: authData.user.user_metadata?.last_name || "",
+      role: roleData?.roles,
   };
-}
 
+  return newUser;
+}
 
 

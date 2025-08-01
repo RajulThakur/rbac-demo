@@ -27,26 +27,22 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { CreateUser, GetRoles, GetUsers } from "@/lib/data-service";
+import { CreateUser, GetRoles, GetUsers, Role } from "@/lib/data-service";
 import { PlusCircle } from "lucide-react";
 import { useEffect, useState } from "react";
 
 interface User {
-  id: number;
+  id: string;
   created_at: string;
   first_name: string;
   last_name: string;
-  roles: {
+  role: {
     id: number;
     name: string;
   } | null;
 }
 
-interface Role {
-  id: number;
-  name: string;
-  description: string;
-}
+
 
 export default function UserPage() {
   const [open, setOpen] = useState(false);
@@ -253,8 +249,8 @@ export default function UserPage() {
                     </div>
                   </TableCell>
                   <TableCell>
-                    {user.roles && (
-                      <Badge variant='secondary'>{user.roles.name}</Badge>
+                    {user.role && (
+                      <Badge variant='secondary'>{user.role.name}</Badge>
                     )}
                   </TableCell>
                 </TableRow>

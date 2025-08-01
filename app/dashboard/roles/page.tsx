@@ -43,6 +43,7 @@ import {
   DeleteRole,
   GetPermissions,
   GetRoles,
+  Role,
   UpdateRole,
 } from "@/lib/data-service";
 import { MoreHorizontal, PlusCircle, Trash2, Edit } from "lucide-react";
@@ -55,12 +56,6 @@ interface Permission {
   description?: string;
 }
 
-interface Role {
-  id: number;
-  name: string;
-  description: string | null;
-  permissions: Permission[];
-}
 
 export default function RolePage() {
   // Dialog states
@@ -115,7 +110,7 @@ export default function RolePage() {
   const handleEdit = (role: Role) => {
     setEditingRole(role);
     setFormData({ name: role.name, description: role.description || "" });
-    setSelectedPermissions(role.permissions.map((p) => p.id));
+    setSelectedPermissions(role.role_permissions.map((p) => p.permissions));
     setDialogOpen(true);
   };
 
@@ -261,7 +256,7 @@ export default function RolePage() {
                   </TableCell>
                   <TableCell>
                     <div className="flex flex-wrap gap-1">
-                      {role.permissions.map((perm) => (<Badge key={perm.id} variant="secondary">{perm.name}</Badge>))}
+                      {role.role_permissions.map((perm) => (<Badge key={perm} variant="secondary">{perm.permissions}</Badge>))}
                     </div>
                   </TableCell>
                   <TableCell className="text-right">
