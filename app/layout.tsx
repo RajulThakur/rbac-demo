@@ -1,8 +1,8 @@
-import type { Metadata } from "next";
-import { Geist } from "next/font/google";
-import { ThemeProvider } from "next-themes";
-import "./globals.css";
 import { Toaster } from "@/components/ui/sonner";
+import type { Metadata } from "next";
+import { ThemeProvider } from "next-themes";
+import { Geist } from "next/font/google";
+import "./globals.css";
 
 const defaultUrl = process.env.VERCEL_URL
   ? `https://${process.env.VERCEL_URL}`
@@ -35,9 +35,8 @@ export default function RootLayout({
           defaultTheme='system'
           enableSystem
           disableTransitionOnChange>
-          <Toaster />
-
-          {children}
+            <Toaster />
+            {children}
         </ThemeProvider>
       </body>
     </html>

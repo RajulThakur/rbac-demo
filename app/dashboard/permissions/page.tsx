@@ -162,9 +162,12 @@ export default function PermissionPage() {
   }
 
   return (
-    <div className='p-6 w-full'>
+    <div className='px-6 py-2 w-full'>
       <div className='flex items-center justify-between mb-6'>
-        <h1 className='text-2xl font-bold'>Permissions Management</h1>
+        <div className="flex gap-1 items-center">
+          {/* <SidebarTrigger /> */}
+          <h1 className='text-2xl font-bold'>Permission Management</h1>
+        </div>
         <Dialog
           open={open}
           onOpenChange={setOpen}>

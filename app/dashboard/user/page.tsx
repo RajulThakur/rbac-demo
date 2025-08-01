@@ -1,6 +1,24 @@
 "use client";
 
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   Table,
   TableBody,
@@ -11,24 +29,6 @@ import {
 } from "@/components/ui/table";
 import { PlusCircle } from "lucide-react";
 import { useState } from "react";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Badge } from "@/components/ui/badge";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 
 export default function UserPage() {
   const [open, setOpen] = useState(false);
@@ -62,9 +62,12 @@ export default function UserPage() {
   ];
 
   return (
-    <div className='p-6 w-full'>
+    <div className='px-6 py-2 w-full'>
       <div className='flex items-center justify-between mb-6'>
-        <h1 className='text-2xl font-bold'>User Management</h1>
+        <div className="flex gap-1 items-center">
+          {/* <SidebarTrigger /> */}
+          <h1 className='text-2xl font-bold'>User Management</h1>
+        </div>
         <Dialog
           open={open}
           onOpenChange={setOpen}>

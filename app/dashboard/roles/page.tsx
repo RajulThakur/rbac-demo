@@ -2,6 +2,8 @@
 
 import { Button } from "@/components/ui/button";
 
+import ToastError from "@/components/toast-error";
+import ToastSuccess from "@/components/toast-success";
 import { Badge } from "@/components/ui/badge";
 import {
   Dialog,
@@ -27,8 +29,6 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
-import ToastError from "@/components/toast-error";
-import ToastSuccess from "@/components/toast-success";
 import { PlusCircle } from "lucide-react";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
@@ -42,6 +42,8 @@ export interface RoleFormValues {
   description: string;
 }
 
+import DeleteBtn from "@/components/delete-button";
+import EditBtn, { BaseProperty } from "@/components/edit-button";
 import {
   CreateRole,
   DeleteRole,
@@ -50,8 +52,6 @@ import {
 } from "@/lib/data-service";
 import { useEffect } from "react";
 import { toast } from "sonner";
-import EditBtn, { BaseProperty } from "@/components/edit-button";
-import DeleteBtn from "@/components/delete-button";
 
 export default function RolesPage() {
   const [open, setOpen] = useState(false);
@@ -158,9 +158,12 @@ export default function RolesPage() {
     }
   }
   return (
-    <div className='p-6 w-full'>
+    <div className='px-6 py-2 w-full'>
       <div className='flex items-center justify-between mb-6'>
-        <h1 className='text-2xl font-bold'>Roles Management</h1>
+        <div className="flex gap-1 items-center">
+          {/* <SidebarTrigger /> */}
+          <h1 className='text-2xl font-bold'>Role Management</h1>
+        </div>
         <Dialog
           open={open}
           onOpenChange={setOpen}>
