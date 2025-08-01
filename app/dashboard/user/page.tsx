@@ -27,45 +27,98 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { CreateUser, GetRoles, GetUsers } from "@/lib/data-service";
 import { PlusCircle } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+
+interface User {
+  id: number;
+  created_at: string;
+  first_name: string;
+  last_name: string;
+  roles: {
+    id: number;
+    name: string;
+  } | null;
+}
+
+interface Role {
+  id: number;
+  name: string;
+  description: string;
+}
 
 export default function UserPage() {
   const [open, setOpen] = useState(false);
+  const [users, setUsers] = useState<User[]>([]);
+  const [roles, setRoles] = useState<Role[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [selectedRole, setSelectedRole] = useState<string>("");
+  const [formData, setFormData] = useState({
+    first_name: "",
+    last_name: "",
+    email: "",
+  });
 
-  // Example data - replace with your actual data fetching logic
-  const users = [
-    {
-      id: 1,
-      name: "John Doe",
-      email: "john@example.com",
-      role: "Admin",
-      status: "Active",
-      avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=John",
-    },
-    {
-      id: 2,
-      name: "Jane Smith",
-      email: "jane@example.com",
-      role: "Editor",
-      status: "Active",
-      avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Jane",
-    },
-    {
-      id: 3,
-      name: "Bob Wilson",
-      email: "bob@example.com",
-      role: "Viewer",
-      status: "Inactive",
-      avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Bob",
-    },
-  ];
+  useEffect(() => {
+    loadUsers();
+    loadRoles();
+  }, []);
+
+  const loadUsers = async () => {
+    try {
+      const data = await GetUsers();
+      setUsers(data);
+    } catch (error) {
+      console.error("Error loading users:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const loadRoles = async () => {
+    try {
+      const data = await GetRoles();
+      setRoles(data);
+    } catch (error) {
+      console.error("Error loading roles:", error);
+    }
+  };
+
+  const handleCreateUser = async () => {
+    try {
+      if (
+        !formData.first_name ||
+        !formData.last_name ||
+        !formData.email ||
+        !selectedRole
+      ) {
+        throw new Error("Please fill in all fields");
+      }
+
+      await CreateUser({
+        first_name: formData.first_name,
+        last_name: formData.last_name,
+        email: formData.email,
+        role_id: parseInt(selectedRole),
+      });
+
+      setFormData({ first_name: "", last_name: "", email: "" });
+      setSelectedRole("");
+      setOpen(false);
+      await loadUsers();
+    } catch (error) {
+      console.error("Error creating user:", error);
+      if (error instanceof Error) {
+        // You might want to show a toast with error.message
+      }
+    }
+  };
 
   return (
     <div className='px-6 py-2 w-full'>
       <div className='flex items-center justify-between mb-6'>
-        <div className="flex gap-1 items-center">
-          {/* <SidebarTrigger /> */}
+        <div className='flex gap-1 items-center'>
           <h1 className='text-2xl font-bold'>User Management</h1>
         </div>
         <Dialog
@@ -83,10 +136,25 @@ export default function UserPage() {
             </DialogHeader>
             <div className='grid gap-4 py-4'>
               <div className='grid gap-2'>
-                <Label htmlFor='name'>Full Name</Label>
+                <Label htmlFor='firstName'>First Name</Label>
                 <Input
-                  id='name'
-                  placeholder='Enter full name'
+                  id='firstName'
+                  placeholder='Enter first name'
+                  value={formData.first_name}
+                  onChange={(e) =>
+                    setFormData({ ...formData, first_name: e.target.value })
+                  }
+                />
+              </div>
+              <div className='grid gap-2'>
+                <Label htmlFor='lastName'>Last Name</Label>
+                <Input
+                  id='lastName'
+                  placeholder='Enter last name'
+                  value={formData.last_name}
+                  onChange={(e) =>
+                    setFormData({ ...formData, last_name: e.target.value })
+                  }
                 />
               </div>
               <div className='grid gap-2'>
@@ -95,18 +163,28 @@ export default function UserPage() {
                   id='email'
                   type='email'
                   placeholder='Enter email address'
+                  value={formData.email}
+                  onChange={(e) =>
+                    setFormData({ ...formData, email: e.target.value })
+                  }
                 />
               </div>
               <div className='grid gap-2'>
                 <Label htmlFor='role'>Role</Label>
-                <Select>
+                <Select
+                  value={selectedRole}
+                  onValueChange={setSelectedRole}>
                   <SelectTrigger>
                     <SelectValue placeholder='Select a role' />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value='admin'>Admin</SelectItem>
-                    <SelectItem value='editor'>Editor</SelectItem>
-                    <SelectItem value='viewer'>Viewer</SelectItem>
+                    {roles.map((role) => (
+                      <SelectItem
+                        key={role.id}
+                        value={role.id.toString()}>
+                        {role.name}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
@@ -114,76 +192,76 @@ export default function UserPage() {
             <div className='flex justify-end gap-3'>
               <Button
                 variant='outline'
-                onClick={() => setOpen(false)}>
+                onClick={() => {
+                  setOpen(false);
+                  setFormData({ first_name: "", last_name: "", email: "" });
+                  setSelectedRole("");
+                }}>
                 Cancel
               </Button>
-              <Button>Create User</Button>
+              <Button
+                onClick={handleCreateUser}
+                disabled={
+                  !formData.first_name ||
+                  !formData.last_name ||
+                  !formData.email ||
+                  !selectedRole
+                }>
+                Create User
+              </Button>
             </div>
           </DialogContent>
         </Dialog>
       </div>
 
       <div className='border rounded-lg'>
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>User</TableHead>
-              <TableHead>Role</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead className='text-right'>Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {users.map((user) => (
-              <TableRow key={user.id}>
-                <TableCell className='flex items-center gap-3'>
-                  <Avatar>
-                    <AvatarImage
-                      src={user.avatar}
-                      alt={user.name}
-                    />
-                    <AvatarFallback>
-                      {user.name
-                        .split(" ")
-                        .map((n) => n[0])
-                        .join("")}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div>
-                    <div className='font-medium'>{user.name}</div>
-                    <div className='text-sm text-muted-foreground'>
-                      {user.email}
-                    </div>
-                  </div>
-                </TableCell>
-                <TableCell>
-                  <Badge variant='secondary'>{user.role}</Badge>
-                </TableCell>
-                <TableCell>
-                  <Badge
-                    variant={
-                      user.status === "Active" ? "default" : "secondary"
-                    }>
-                    {user.status}
-                  </Badge>
-                </TableCell>
-                <TableCell className='text-right'>
-                  <Button
-                    variant='ghost'
-                    size='sm'>
-                    Edit
-                  </Button>
-                  <Button
-                    variant='ghost'
-                    size='sm'
-                    className='text-red-600'>
-                    Delete
-                  </Button>
-                </TableCell>
+        {loading ? (
+          <div className='p-8 text-center'>
+            <div className='animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4'></div>
+            <p className='text-muted-foreground'>Loading users...</p>
+          </div>
+        ) : (
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>User Details</TableHead>
+                <TableHead>Role</TableHead>
               </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+            </TableHeader>
+            <TableBody>
+              {users.map((user) => (
+                <TableRow key={user.id}>
+                  <TableCell className='flex items-center gap-3'>
+                    <Avatar>
+                      <AvatarImage
+                        src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${user.first_name}${user.last_name}`}
+                        alt={`${user.first_name} ${user.last_name}`}
+                      />
+                      <AvatarFallback>
+                        {user.first_name[0]}
+                        {user.last_name[0]}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div>
+                      <div className='font-medium'>
+                        {user.first_name} {user.last_name}
+                      </div>
+                      <div className='text-sm text-muted-foreground'>
+                        Created:{" "}
+                        {new Date(user.created_at).toLocaleDateString()}
+                      </div>
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    {user.roles && (
+                      <Badge variant='secondary'>{user.roles.name}</Badge>
+                    )}
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        )}
       </div>
     </div>
   );

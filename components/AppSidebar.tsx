@@ -19,6 +19,7 @@ import Link from "next/link";
 import { Separator } from "./ui/separator";
 import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
 import { ThemeSwitcher } from "./theme-switcher";
+import ToastError from "./toast-error";
 
 interface AppSidebarProps {
   user: SupabaseUser;
@@ -57,9 +58,10 @@ export function AppSidebar({ user }: AppSidebarProps) {
       if (error) {
         throw error;
       }
-      router.push("/auth");
-    } catch (error: any) {
-      console.error("Error signing out:", error.message);
+      router.push("/auth/login");
+    } catch (error) {
+      if(error instanceof Error) ToastError(error.message);
+      else ToastError('Unable to SignOut')
     }
   };
 
