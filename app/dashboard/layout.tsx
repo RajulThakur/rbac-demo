@@ -1,11 +1,11 @@
 "use client";
 import { Button } from "@/components/ui/button";
 import { createClient } from "@/lib/supabase/client";
+import ToastError from "@/components/toast-error";
 import { Session, User } from "@supabase/supabase-js";
 import { LogOut, Shield } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { toast } from "sonner";
 export default function ProtectedLayout({
   children,
 }: {
@@ -19,17 +19,13 @@ export default function ProtectedLayout({
     try {
       const { error } = await createClient().auth.signOut();
       if (error) {
-        toast("Error", {
-          description: error.message,
-        });
+        ToastError(error.message);
       } else {
         router.push("/auth");
       }
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
-      toast("Error", {
-        description: error.message || "An unexpected error occurred",
-      });
+      ToastError(error.message);
     }
   };
   useEffect(() => {
