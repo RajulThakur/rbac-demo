@@ -309,13 +309,13 @@ export async function GetUsers() {
   const { data: userRoles, error: rolesError } = await supabase.from(
     "user_roles"
   ).select(`
-      user_id,
-      roles:roles_id (
-        id,
-        name,
-        description
-      )
-    `);
+    user_id,
+    roles:roles_id (
+      id,
+      name,
+      description
+    )
+  `);
 
   if (rolesError) {
     console.error("Error fetching user roles:", rolesError);
@@ -329,7 +329,7 @@ export async function GetUsers() {
       ...authUser,
       first_name: authUser.user_metadata?.first_name || "",
       last_name: authUser.user_metadata?.last_name || "",
-      role: userRole?.roles,
+      role: userRole?.roles ? userRole.roles[0] || null : null,
     };
   });
 
@@ -384,9 +384,6 @@ export async function CreateUser(userData: {
   // Return combined user data
   return {
     ...authData.user,
-    role: roleData?.[0]?.roles,
+    role: roleData?.[0]?.roles || null,
   };
 }
-
-
-
