@@ -1,25 +1,35 @@
 "use client";
 
-import { Button } from "@/components/ui/button";
-
-import ToastError from "@/components/toast-error";
-import ToastSuccess from "@/components/toast-success";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog";
 import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-} from "@/components/ui/form";
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   Table,
   TableBody,
@@ -28,266 +38,258 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Textarea } from "@/components/ui/textarea";
-import { PlusCircle } from "lucide-react";
-import { useState } from "react";
-import { useForm } from "react-hook-form";
-
-export interface Roles extends BaseProperty {
-  permissions: string[];
-}
-
-export interface RoleFormValues {
-  name: string;
-  description: string;
-}
-
-import DeleteBtn from "@/components/delete-button";
-import EditBtn, { BaseProperty } from "@/components/edit-button";
 import {
   CreateRole,
   DeleteRole,
+  GetPermissions,
   GetRoles,
   UpdateRole,
 } from "@/lib/data-service";
-import { useEffect } from "react";
-import { toast } from "sonner";
+import { MoreHorizontal, PlusCircle, Trash2, Edit } from "lucide-react";
+import { useEffect, useState } from "react";
 
-export default function RolesPage() {
-  const [open, setOpen] = useState(false);
-  const [roles, setRoles] = useState<Roles[]>([]);
+// (Interfaces for Permission and Role remain the same)
+interface Permission {
+  id: number;
+  name: string;
+  description?: string;
+}
+
+interface Role {
+  id: number;
+  name: string;
+  description: string | null;
+  permissions: Permission[];
+}
+
+export default function RolePage() {
+  // Dialog states
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [alertOpen, setAlertOpen] = useState(false);
+  
+  // Data states
+  const [roles, setRoles] = useState<Role[]>([]);
+  const [allPermissions, setAllPermissions] = useState<Permission[]>([]);
   const [loading, setLoading] = useState(true);
+  
+  // Form and selection states
+  const [editingRole, setEditingRole] = useState<Role | null>(null);
+  const [roleToDelete, setRoleToDelete] = useState<Role | null>(null);
+  const [formData, setFormData] = useState({ name: "", description: "" });
+  const [selectedPermissions, setSelectedPermissions] = useState<number[]>([]);
+
+  const isEditing = !!editingRole;
 
   useEffect(() => {
-    async function fetchRoles() {
-      try {
-        const data = await GetRoles();
-        setRoles(data || []);
-      } catch (error) {
-        console.error("Error fetching roles:", error);
-        toast.error("Failed to fetch roles");
-      } finally {
-        setLoading(false);
-      }
-    }
-
-    fetchRoles();
+    loadInitialData();
   }, []);
 
-  const form = useForm<RoleFormValues>({
-    defaultValues: {
-      name: "",
-      description: "",
-    },
-  });
+  const loadInitialData = async () => {
+    setLoading(true);
+    try {
+      const [rolesData, permissionsData] = await Promise.all([
+        GetRoles(),
+        GetPermissions(),
+      ]);
+      setRoles(rolesData);
+      setAllPermissions(permissionsData);
+    } catch (error) {
+      console.error("Error loading initial data:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-  async function onSubmit(data: RoleFormValues) {
+  const resetForm = () => {
+    setFormData({ name: "", description: "" });
+    setSelectedPermissions([]);
+    setEditingRole(null);
+  };
+  
+  // --- NEW HANDLERS ---
+  const handleAddNew = () => {
+    resetForm();
+    setDialogOpen(true);
+  };
+
+  const handleEdit = (role: Role) => {
+    setEditingRole(role);
+    setFormData({ name: role.name, description: role.description || "" });
+    setSelectedPermissions(role.permissions.map((p) => p.id));
+    setDialogOpen(true);
+  };
+
+  const handleDeleteInitiate = (role: Role) => {
+    setRoleToDelete(role);
+    setAlertOpen(true);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!roleToDelete) return;
     try {
-      const res = await CreateRole({
-        name: data.name,
-        description: data.description,
-      });
-      const { statusText, status } = res;
-      console.log("response", res);
-      form.reset();
-      setOpen(false);
-      if (status === 201) {
-        ToastSuccess(statusText);
-        console.log(res.data);
-        setRoles((role) => [...role, ...res.data]);
-      } else ToastError(statusText);
+      await DeleteRole(roleToDelete.id);
+      await loadInitialData(); // Refresh list
     } catch (error) {
-      if (error instanceof Error) {
-        ToastError(error.message);
-      } else {
-        ToastError("An unknown error occurred");
-      }
+      console.error("Failed to delete role", error);
+    } finally {
+      setAlertOpen(false);
+      setRoleToDelete(null);
     }
-  }
-  async function onEdit(data: RoleFormValues, id: number) {
+  };
+
+  const handlePermissionChange = (permissionId: number, checked: boolean) => {
+    setSelectedPermissions((prev) =>
+      checked ? [...prev, permissionId] : prev.filter((id) => id !== permissionId)
+    );
+  };
+
+  const handleSubmit = async () => {
     try {
-      const res = await UpdateRole({
-        id,
-        name: data.name,
-        description: data.description,
-      });
-      const { status, statusText } = res;
-      console.log("response", res);
-      form.reset();
-      setOpen(false);
-      if (status === 200) {
-        ToastSuccess(statusText);
-        console.log(res.data);
-        setRoles((roles) =>
-          roles.map((r) =>
-            r.id === id
-              ? { ...r, name: res.data[0].name, description: res.data[0].description }
-              : r
-          )
-        );
-        return true
-      } else ToastError(statusText);
-    } catch (error) {
-      if (error instanceof Error) {
-        ToastError(error.message);
+      if (isEditing) {
+        // Update existing role
+        await UpdateRole(editingRole.id, {
+          ...formData,
+          permission_ids: selectedPermissions,
+        });
       } else {
-        ToastError("An unknown error occurred");
+        // Create new role
+        await CreateRole({
+          ...formData,
+          permission_ids: selectedPermissions,
+        });
       }
-      return false;
-    }
-  }
-  async function handleDelete(id: number) {
-    try {
-      const res = await DeleteRole(id);
-      const { statusText, status } = res;
-      console.log("response", res);
-      setOpen(false);
-      if (status === 204) {
-        ToastSuccess(statusText);
-        console.log(res.data);
-        setRoles((roles) => roles.filter((r) => r.id !== id));
-        return true;
-      } else ToastError(statusText);
+      setDialogOpen(false);
+      await loadInitialData();
     } catch (error) {
-      if (error instanceof Error) {
-        ToastError(error.message);
-      } else {
-        ToastError("An unknown error occurred");
-      }
-      return false;
+      console.error("Failed to save role:", error);
     }
-  }
+  };
+
   return (
-    <div className='px-6 py-2 w-full'>
-      <div className='flex items-center justify-between mb-6'>
-        <div className="flex gap-1 items-center">
-          {/* <SidebarTrigger /> */}
-          <h1 className='text-2xl font-bold'>Role Management</h1>
-        </div>
-        <Dialog
-          open={open}
-          onOpenChange={setOpen}>
-          <DialogTrigger asChild>
-            <Button>
-              <PlusCircle className='w-4 h-4 mr-2' />
-              Add Role
-            </Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Create New Role</DialogTitle>
-            </DialogHeader>
-            <Form {...form}>
-              <form
-                className='grid gap-4 py-4'
-                onSubmit={form.handleSubmit(onSubmit)}>
-                <FormField
-                  control={form.control}
-                  name='name'
-                  render={({ field }) => (
-                    <FormItem className='grid gap-2'>
-                      <FormLabel htmlFor='role'>Role Name</FormLabel>
-                      <FormControl>
-                        <Input
-                          {...field}
-                          placeholder='Enter role name'
-                        />
-                      </FormControl>
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name='description'
-                  render={({ field }) => (
-                    <FormItem className='grid gap-2'>
-                      <FormLabel htmlFor='desc'>Description of Role</FormLabel>
-                      <FormControl>
-                        <Textarea
-                          {...field}
-                          placeholder='Describe role'
-                        />
-                      </FormControl>
-                    </FormItem>
-                  )}
-                />
-                <div className='flex justify-end gap-3'>
-                  <Button
-                    type='button'
-                    variant='outline'
-                    onClick={() => setOpen(false)}>
-                    Cancel
-                  </Button>
-                  <Button type='submit'>Create Role</Button>
-                </div>
-              </form>
-            </Form>
-          </DialogContent>
-        </Dialog>
+    <div className="px-6 py-2 w-full">
+      <div className="flex items-center justify-between mb-6">
+        <h1 className="text-2xl font-bold">Role Management</h1>
+        <Button onClick={handleAddNew}>
+          <PlusCircle className="w-4 h-4 mr-2" />
+          Add Role
+        </Button>
       </div>
 
-      <div className='border rounded-lg'>
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Role Name</TableHead>
-              <TableHead>Permissions</TableHead>
-              <TableHead>Description</TableHead>
-              <TableHead className='text-right'>Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {loading ? (
+      {/* --- MAIN DIALOG FOR CREATE/EDIT --- */}
+      <Dialog
+        open={dialogOpen}
+        onOpenChange={(open) => {
+          if (!open) resetForm();
+          setDialogOpen(open);
+        }}
+      >
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>{isEditing ? "Edit Role" : "Create New Role"}</DialogTitle>
+            <DialogDescription>
+              {isEditing ? `Update the details for the "${editingRole.name}" role.` : "Define a new role and assign permissions."}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            {/* Form fields */}
+            <div className='grid gap-2'>
+              <Label htmlFor='roleName'>Role Name</Label>
+              <Input id='roleName' value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })}/>
+            </div>
+            <div className='grid gap-2'>
+              <Label htmlFor='roleDescription'>Description</Label>
+              <Input id='roleDescription' value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })}/>
+            </div>
+            <div className='grid gap-2'>
+              <Label>Permissions</Label>
+              <div className='grid gap-2 rounded-md border p-4 max-h-48 overflow-y-auto'>
+                {allPermissions.map((permission) => (
+                  <div key={permission.id} className='flex items-center space-x-2'>
+                    <Checkbox id={`perm-${permission.id}`} checked={selectedPermissions.includes(permission.id)} onCheckedChange={(checked) => handlePermissionChange(permission.id, !!checked)}/>
+                    <Label htmlFor={`perm-${permission.id}`} className='font-normal'>{permission.name}</Label>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDialogOpen(false)}>Cancel</Button>
+            <Button onClick={handleSubmit} disabled={!formData.name || !formData.description || selectedPermissions.length === 0}>
+              {isEditing ? "Save Changes" : "Create Role"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      
+      {/* --- DELETE CONFIRMATION DIALOG --- */}
+      <AlertDialog open={alertOpen} onOpenChange={setAlertOpen}>
+          <AlertDialogContent>
+              <AlertDialogHeader>
+                  <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                      This action cannot be undone. This will permanently delete the <strong>{roleToDelete?.name}</strong> role and remove it from all users.
+                  </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction onClick={handleDeleteConfirm}>Continue</AlertDialogAction>
+              </AlertDialogFooter>
+          </AlertDialogContent>
+      </AlertDialog>
+
+      {/* --- ROLES TABLE --- */}
+      <div className="border rounded-lg">
+        {loading ? (
+          <div className="p-8 text-center">
+            {/* Loading spinner */}
+          </div>
+        ) : (
+          <Table>
+            <TableHeader>
               <TableRow>
-                <TableCell
-                  colSpan={3}
-                  className='text-center'>
-                  Loading roles...
-                </TableCell>
+                <TableHead>Role</TableHead>
+                <TableHead>Permissions</TableHead>
+                <TableHead className="text-right">Actions</TableHead>
               </TableRow>
-            ) : roles.length === 0 ? (
-              <TableRow>
-                <TableCell
-                  colSpan={3}
-                  className='text-center'>
-                  No roles found. Create your first role!
-                </TableCell>
-              </TableRow>
-            ) : (
-              roles.map((role) => (
+            </TableHeader>
+            <TableBody>
+              {roles.map((role) => (
                 <TableRow key={role.id}>
-                  <TableCell className='font-medium'>{role.name}</TableCell>
                   <TableCell>
-                    <div className='flex gap-1 flex-wrap'>
-                      {role.permissions?.map((permission) => (
-                        <Badge
-                          key={permission}
-                          variant='secondary'>
-                          {permission}
-                        </Badge>
-                      )) || "No permissions assigned"}
+                    <div className="font-medium">{role.name}</div>
+                    <div className="text-sm text-muted-foreground">{role.description || ""}</div>
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex flex-wrap gap-1">
+                      {role.permissions.map((perm) => (<Badge key={perm.id} variant="secondary">{perm.name}</Badge>))}
                     </div>
                   </TableCell>
-                  <TableCell className='font-light'>
-                    {role.description || ""}
-                  </TableCell>
-                  <TableCell className='text-right'>
-                    <EditBtn
-                      type='Role'
-                      role={role}
-                      onSubmit={onEdit}
-                    />
-                    <DeleteBtn
-                      title={`role:${role.name}`}
-                      handleDelete={handleDelete}
-                      id={role.id}
-                    />
+                  <TableCell className="text-right">
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" className="h-8 w-8 p-0">
+                          <span className="sr-only">Open menu</span>
+                          <MoreHorizontal className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                        <DropdownMenuItem onClick={() => handleEdit(role)}>
+                          <Edit className="mr-2 h-4 w-4" />
+                          <span>Edit</span>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem className="text-red-600" onClick={() => handleDeleteInitiate(role)}>
+                          <Trash2 className="mr-2 h-4 w-4" />
+                          <span>Delete</span>
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </TableCell>
                 </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
+              ))}
+            </TableBody>
+          </Table>
+        )}
       </div>
     </div>
   );

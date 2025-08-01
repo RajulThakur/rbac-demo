@@ -1,8 +1,8 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 import { Button } from "@/components/ui/button";
 import { Dialog } from "@radix-ui/react-dialog";
 
-import { RoleFormValues } from "@/app/dashboard/roles/page";
 import {
   DialogContent,
   DialogHeader,
@@ -20,6 +20,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
+
 export interface BaseProperty{
   id:number;
   name:string;
@@ -32,11 +33,11 @@ export default function EditBtn({
 }: {
   type:string
   role: BaseProperty;
-  onSubmit: (data: RoleFormValues, id: number) => Promise<boolean | undefined>;
+  onSubmit: (data: any, id: number) => Promise<boolean | undefined>;
 }) {
   const [open, setOpen] = useState(false);
   const { name, description, id } = role;
-  const form = useForm<RoleFormValues>();
+  const form = useForm<any>();
 
   return (
     <Dialog
