@@ -1,14 +1,7 @@
 "use server";
 import { createClient } from "./supabase/server";
 
-export async function GetRoles() {
-  const supabase = await createClient();
-  const { data, error } = await supabase.from("roles").select("*");
-  if (error) {
-    throw new Error("Failed to fetch roles");
-  }
-  return data;
-}
+//Crud permissions
 export async function GetPermissions() {
   const supabase = await createClient();
   const { data, error } = await supabase.from("permissions").select("*");
@@ -17,20 +10,69 @@ export async function GetPermissions() {
   }
   return data;
 }
-
-export async function GetUsers() {
+export async function UpdatePermission(permission: {
+  id: number;
+  name: string;
+  description: string;
+}) {
   const supabase = await createClient();
-  const { data, error } = await supabase.from("users").select("*");
+  const { data, error, status, statusText } = await supabase
+    .from("permissions")
+    .update({
+      name: permission.name,
+      description: permission.description,
+    })
+    .eq("id", permission.id)
+    .select();
+
   if (error) {
-    throw new Error("Failed to fetch users");
+    console.error("Error updating permission:", error);
+    throw new Error(error.message);
+  }
+
+  return { data, status, statusText };
+}
+
+export async function DeletePermission(id: number) {
+  const supabase = await createClient();
+  const { error, status, statusText } = await supabase
+    .from("permissions")
+    .delete()
+    .eq("id", id);
+
+  if (error) {
+    console.error("Error deleting permission:", error);
+    throw new Error(error.message);
+  }
+
+  return { status, statusText };
+}
+export async function CreatePermission(permission: {
+  name: string;
+  description: string;
+}) {
+  const supabase = await createClient();
+  const { data, error, statusText, status } = await supabase
+    .from("permissions")
+    .insert([permission]);
+  if (error) {
+    throw new Error("Failed to create permission");
+  }
+  return { data, statusText, status };
+}
+
+//Crud roles
+export async function GetRoles() {
+  const supabase = await createClient();
+  const { data, error } = await supabase.from("roles").select("*");
+  if (error) {
+    throw new Error("Failed to fetch roles");
   }
   return data;
 }
-
-//done
 export async function CreateRole(role: { name: string; description: string }) {
   const supabase = await createClient();
-  const { statusText, error, data } = await supabase
+  const { statusText, error, data, status } = await supabase
     .from("roles")
     .insert([role])
     .select("*");
@@ -39,7 +81,7 @@ export async function CreateRole(role: { name: string; description: string }) {
     console.error("Error creating role:", error);
     throw new Error(error.message);
   }
-  return { data, statusText };
+  return { data, statusText, status };
 }
 export async function DeleteRole(id: number) {
   const supabase = await createClient();
@@ -71,16 +113,12 @@ export async function UpdateRole(role: {
   return { data, statusText, status };
 }
 
-export async function CreatePermission(permission: {
-  name: string;
-  description: string;
-}) {
+//Crud users
+export async function GetUsers() {
   const supabase = await createClient();
-  const { data, error } = await supabase
-    .from("permissions")
-    .insert([permission]);
+  const { data, error } = await supabase.from("users").select("*");
   if (error) {
-    throw new Error("Failed to create permission");
+    throw new Error("Failed to fetch users");
   }
   return data;
 }

@@ -2,6 +2,7 @@
 import { Button } from "@/components/ui/button";
 import { Dialog } from "@radix-ui/react-dialog";
 
+import { RoleFormValues } from "@/app/dashboard/roles/page";
 import {
   DialogContent,
   DialogHeader,
@@ -17,50 +18,26 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Dispatch, SetStateAction, useState } from "react";
+import { useState } from "react";
 import { useForm } from "react-hook-form";
-import { RoleFormValues, Roles } from "@/app/dashboard/roles/page";
-import ToastError from "./toast-error";
-import ToastSuccess from "./toast-success";
-import { UpdateRole } from "@/lib/data-service";
+export interface BaseProperty{
+  id:number;
+  name:string;
+  description?: string;
+}
 export default function EditBtn({
+  type,
   role,
-  setRoles,
+  onSubmit,
 }: {
-  role: Roles;
-  setRoles: Dispatch<SetStateAction<Roles[]>>;
+  type:string
+  role: BaseProperty;
+  onSubmit: (data: RoleFormValues, id: number) => Promise<boolean | undefined>;
 }) {
   const [open, setOpen] = useState(false);
   const { name, description, id } = role;
   const form = useForm<RoleFormValues>();
-  async function onSubmit(data: RoleFormValues) {
-    try {
-      const res = await UpdateRole({
-        id,
-        name: data.role,
-        description: data.desc,
-      });
-      const { status, statusText } = res;
-      console.log("response", res);
-      form.reset();
-      setOpen(false);
-      if (status === 200) {
-        ToastSuccess(statusText);
-        console.log(res.data);
-        setRoles((roles) =>
-          roles.map((r) =>
-            r.id === id ? { ...r, name: res.data[0].name, description: data.desc } : r
-          )
-        );
-      } else ToastError(statusText);
-    } catch (error) {
-      if (error instanceof Error) {
-        ToastError(error.message);
-      } else {
-        ToastError("An unknown error occurred");
-      }
-    }
-  }
+
   return (
     <Dialog
       open={open}
@@ -74,23 +51,26 @@ export default function EditBtn({
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Edit Role:{name}</DialogTitle>
+          <DialogTitle>Edit {type}:{name}</DialogTitle>
         </DialogHeader>
         <Form {...form}>
           <form
             className='grid gap-4 py-4'
-            onSubmit={form.handleSubmit(onSubmit)}>
+            onSubmit={form.handleSubmit(async (data) => {
+              const isSuccess=await onSubmit(data, id);
+              if(isSuccess) setOpen(false)
+            })}>
             <FormField
               control={form.control}
-              name='role'
+              name="name"
               render={({ field }) => (
                 <FormItem className='grid gap-2'>
-                  <FormLabel htmlFor='role'>Role Name</FormLabel>
+                  <FormLabel htmlFor={type}>{type} Name</FormLabel>
                   <FormControl>
                     <Input
                       {...field}
                       defaultValue={name}
-                      placeholder='Enter role name'
+                      placeholder={`Enter ${type} name`}
                     />
                   </FormControl>
                 </FormItem>
@@ -98,15 +78,15 @@ export default function EditBtn({
             />
             <FormField
               control={form.control}
-              name='desc'
+              name='description'
               render={({ field }) => (
                 <FormItem className='grid gap-2'>
-                  <FormLabel htmlFor='desc'>Description of Role</FormLabel>
+                  <FormLabel htmlFor='desc'>Description of {type}</FormLabel>
                   <FormControl>
                     <Textarea
                       {...field}
                       defaultValue={description}
-                      placeholder='Describe role'
+                      placeholder='Describe {type}'
                     />
                   </FormControl>
                 </FormItem>
@@ -119,7 +99,7 @@ export default function EditBtn({
                 onClick={() => setOpen(false)}>
                 Cancel
               </Button>
-              <Button type='submit'>Update Role</Button>
+              <Button type='submit'>Update</Button>
             </div>
           </form>
         </Form>

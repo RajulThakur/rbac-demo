@@ -9,40 +9,18 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Trash } from "lucide-react";
-import { Dispatch, SetStateAction, useState } from "react";
-import { Roles } from "@/app/dashboard/roles/page";
-import { DeleteRole } from "@/lib/data-service";
-import ToastSuccess from "./toast-success";
-import ToastError from "./toast-error";
+import { useState } from "react";
 export default function DeleteBtn({
-  roleName,
+  title,
+  handleDelete,
   id,
-  setRoles,
 }: {
   id: number;
-  roleName: string;
-  setRoles: Dispatch<SetStateAction<Roles[]>>;
+  handleDelete: (id: number) => Promise<boolean | undefined>;
+  title: string;
 }) {
   const [open, setOpen] = useState(false);
-  async function handleDelete() {
-    try {
-      const res = await DeleteRole(id);
-      const { statusText, status } = res;
-      console.log("response", res);
-      setOpen(false);
-      if (status === 204) {
-        ToastSuccess(statusText);
-        console.log(res.data);
-        setRoles((roles) => roles.filter((r) => r.id !== id));
-      } else ToastError(statusText);
-    } catch (error) {
-      if (error instanceof Error) {
-        ToastError(error.message);
-      } else {
-        ToastError('An unknown error occurred');
-      }
-    }
-  }
+
   return (
     <Dialog
       open={open}
@@ -57,7 +35,7 @@ export default function DeleteBtn({
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Do you want to delete role:{roleName}?</DialogTitle>
+          <DialogTitle>Do you want to delete {title}?</DialogTitle>
         </DialogHeader>
         <div className='flex justify-end gap-3'>
           <Button
@@ -68,7 +46,10 @@ export default function DeleteBtn({
           </Button>
           <Button
             type='submit'
-            onClick={handleDelete}>
+            onClick={async () => {
+              const isSuccess = await handleDelete(id);
+              if (isSuccess) setOpen(false);
+            }}>
             <Trash className='w-4 h-4 mr-2' />
             Delete
           </Button>

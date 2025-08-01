@@ -33,22 +33,24 @@ import { PlusCircle } from "lucide-react";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 
-export interface Roles {
-  id: number;
-  name: string;
+export interface Roles extends BaseProperty {
   permissions: string[];
-  description?: string;
 }
 
 export interface RoleFormValues {
-  role: string;
-  desc: string;
+  name: string;
+  description: string;
 }
 
-import { CreateRole, GetRoles } from "@/lib/data-service";
+import {
+  CreateRole,
+  DeleteRole,
+  GetRoles,
+  UpdateRole,
+} from "@/lib/data-service";
 import { useEffect } from "react";
 import { toast } from "sonner";
-import EditBtn from "@/components/edit-button";
+import EditBtn, { BaseProperty } from "@/components/edit-button";
 import DeleteBtn from "@/components/delete-button";
 
 export default function RolesPage() {
@@ -74,19 +76,22 @@ export default function RolesPage() {
 
   const form = useForm<RoleFormValues>({
     defaultValues: {
-      role: "",
-      desc: "",
+      name: "",
+      description: "",
     },
   });
 
   async function onSubmit(data: RoleFormValues) {
     try {
-      const res = await CreateRole({ name: data.role, description: data.desc });
-      const { statusText } = res;
+      const res = await CreateRole({
+        name: data.name,
+        description: data.description,
+      });
+      const { statusText, status } = res;
       console.log("response", res);
       form.reset();
       setOpen(false);
-      if (statusText === "Created") {
+      if (status === 201) {
         ToastSuccess(statusText);
         console.log(res.data);
         setRoles((role) => [...role, ...res.data]);
@@ -97,6 +102,59 @@ export default function RolesPage() {
       } else {
         ToastError("An unknown error occurred");
       }
+    }
+  }
+  async function onEdit(data: RoleFormValues, id: number) {
+    try {
+      const res = await UpdateRole({
+        id,
+        name: data.name,
+        description: data.description,
+      });
+      const { status, statusText } = res;
+      console.log("response", res);
+      form.reset();
+      setOpen(false);
+      if (status === 200) {
+        ToastSuccess(statusText);
+        console.log(res.data);
+        setRoles((roles) =>
+          roles.map((r) =>
+            r.id === id
+              ? { ...r, name: res.data[0].name, description: res.data[0].description }
+              : r
+          )
+        );
+        return true
+      } else ToastError(statusText);
+    } catch (error) {
+      if (error instanceof Error) {
+        ToastError(error.message);
+      } else {
+        ToastError("An unknown error occurred");
+      }
+      return false;
+    }
+  }
+  async function handleDelete(id: number) {
+    try {
+      const res = await DeleteRole(id);
+      const { statusText, status } = res;
+      console.log("response", res);
+      setOpen(false);
+      if (status === 204) {
+        ToastSuccess(statusText);
+        console.log(res.data);
+        setRoles((roles) => roles.filter((r) => r.id !== id));
+        return true;
+      } else ToastError(statusText);
+    } catch (error) {
+      if (error instanceof Error) {
+        ToastError(error.message);
+      } else {
+        ToastError("An unknown error occurred");
+      }
+      return false;
     }
   }
   return (
@@ -122,7 +180,7 @@ export default function RolesPage() {
                 onSubmit={form.handleSubmit(onSubmit)}>
                 <FormField
                   control={form.control}
-                  name='role'
+                  name='name'
                   render={({ field }) => (
                     <FormItem className='grid gap-2'>
                       <FormLabel htmlFor='role'>Role Name</FormLabel>
@@ -137,7 +195,7 @@ export default function RolesPage() {
                 />
                 <FormField
                   control={form.control}
-                  name='desc'
+                  name='description'
                   render={({ field }) => (
                     <FormItem className='grid gap-2'>
                       <FormLabel htmlFor='desc'>Description of Role</FormLabel>
@@ -212,12 +270,13 @@ export default function RolesPage() {
                   </TableCell>
                   <TableCell className='text-right'>
                     <EditBtn
+                      type='Role'
                       role={role}
-                      setRoles={setRoles}
+                      onSubmit={onEdit}
                     />
                     <DeleteBtn
-                      roleName={role.name}
-                      setRoles={setRoles}
+                      title={`role:${role.name}`}
+                      handleDelete={handleDelete}
                       id={role.id}
                     />
                   </TableCell>
