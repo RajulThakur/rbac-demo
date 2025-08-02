@@ -120,7 +120,6 @@ export async function GetRoles() {
   if (error) {
     throw new Error("Failed to fetch roles");
   }
-  console.log("Fetched roles:", data);
 
   // Transform the data to flatten the permissions array
   return data.map((role: RoleData) => ({
@@ -337,7 +336,6 @@ export async function GetUsers(): Promise<User[]> {
 
   const combinedUsers: User[] = authUsers.users.map((authUser) => {
     const userRole = userRoles?.find((ur) => ur.user_id === authUser.id);
-    console.log(userRole);
     return {
       id: authUser.id,
       email: authUser.email,

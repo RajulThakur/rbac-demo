@@ -53,7 +53,6 @@ export default function UserPage() {
     try {
       const data = await GetUsers();
       setUsers(data);
-      console.log(`user-`,data);
     } catch (error) {
       console.error("Error loading users:", error);
     } finally {
@@ -65,7 +64,6 @@ export default function UserPage() {
     try {
       const data = await GetRoles();
       setRoles(data);
-      console.log(`roles-`,data);
     } catch (error) {
       console.error("Error loading roles:", error);
     }

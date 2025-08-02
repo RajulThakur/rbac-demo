@@ -114,13 +114,11 @@ export default function PermissionPage() {
       });
 
       const { status, statusText } = res;
-      console.log("response", res);
       form.reset();
       setOpen(false);
 
       if (status === 200) {
         ToastSuccess(statusText);
-        console.log(res.data);
         setPermissions((permissions) =>
           permissions.map((p) =>
             p.id === id
@@ -144,8 +142,6 @@ export default function PermissionPage() {
     try {
       const res = await DeletePermission(id);
       const { statusText, status } = res;
-      console.log("response", res);
-
       if (status === 204) {
         ToastSuccess(statusText);
         setPermissions((permissions) => permissions.filter((p) => p.id !== id));

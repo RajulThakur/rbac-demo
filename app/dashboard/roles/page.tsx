@@ -85,7 +85,6 @@ export default function RolePage() {
         GetRoles(),
         GetPermissions(),
       ]);
-      console.log(rolesData);
       setRoles(rolesData);
       setAllPermissions(permissionsData);
     } catch (error) {

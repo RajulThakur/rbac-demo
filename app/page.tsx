@@ -10,7 +10,6 @@ export default function Home() {
       const {
         data: { user },
       } = await createClient().auth.getUser();
-      console.log(user);
       if (!user) router.push("/auth/login");
       else router.push("/dashboard");
     }
