@@ -16,6 +16,17 @@ interface Permission {
   description?: string;
 }
 
+interface RolePermission {
+  permissions: Permission;
+}
+
+interface RoleData {
+  id: number;
+  name: string;
+  description?: string;
+  role_permissions?: RolePermission[];
+}
+
 export interface Role {
   id: number;
   name: string;
@@ -23,16 +34,12 @@ export interface Role {
   role_permissions?: Permission[];
 }
 export interface User {
-  id: string; // Correct type is string for Supabase Auth UUID
+  id: string;
   first_name: string;
   last_name: string;
   email?: string;
   created_at: string;
-  role?: {
-    id: number;
-    name: string;
-    description?: string;
-  } | null;
+  role?: Role | null;
 }
 
 //Crud permissions
@@ -113,11 +120,15 @@ export async function GetRoles() {
   if (error) {
     throw new Error("Failed to fetch roles");
   }
+  console.log("Fetched roles:", data);
 
   // Transform the data to flatten the permissions array
-  return data.map((role: Role) => ({
-    ...role,
-    permissions: role.role_permissions?.map((rp: Permission) => rp.id) || [],
+  return data.map((role: RoleData) => ({
+    id: role.id,
+    name: role.name,
+    description: role.description,
+    role_permissions:
+      role.role_permissions?.map((rp: RolePermission) => rp.permissions) || [],
   }));
 }
 
@@ -326,13 +337,14 @@ export async function GetUsers(): Promise<User[]> {
 
   const combinedUsers: User[] = authUsers.users.map((authUser) => {
     const userRole = userRoles?.find((ur) => ur.user_id === authUser.id);
+    console.log(userRole);
     return {
       id: authUser.id,
       email: authUser.email,
       created_at: authUser.created_at,
       first_name: authUser.user_metadata?.first_name || "",
       last_name: authUser.user_metadata?.last_name || "",
-      role: userRole?.roles ? userRole.roles[0] || null : null,
+      role: (userRole?.roles as unknown as Role) || null,
     };
   });
 

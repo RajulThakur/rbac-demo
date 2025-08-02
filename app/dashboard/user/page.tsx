@@ -1,5 +1,6 @@
 "use client";
 
+import ToastError from "@/components/toast-error";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -52,6 +53,7 @@ export default function UserPage() {
     try {
       const data = await GetUsers();
       setUsers(data);
+      console.log(`user-`,data);
     } catch (error) {
       console.error("Error loading users:", error);
     } finally {
@@ -63,6 +65,7 @@ export default function UserPage() {
     try {
       const data = await GetRoles();
       setRoles(data);
+      console.log(`roles-`,data);
     } catch (error) {
       console.error("Error loading roles:", error);
     }
@@ -93,8 +96,8 @@ export default function UserPage() {
     } catch (error) {
       console.error("Error creating user:", error);
       if (error instanceof Error) {
-        // You might want to show a toast with error.message
-      }
+        ToastError(error.message);
+      } else ToastError("Unnable to create User");
     }
   };
 
